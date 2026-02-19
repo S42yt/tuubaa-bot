@@ -9,6 +9,7 @@ import (
 
 	"github.com/S42yt/tuubaa-bot/core"
 	_ "github.com/S42yt/tuubaa-bot/modules/roleplay"
+	_ "github.com/S42yt/tuubaa-bot/modules/booster"
 	logger "github.com/S42yt/tuubaa-bot/utils/logger"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"

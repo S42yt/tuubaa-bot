@@ -313,7 +313,6 @@ func handleRegisterCommands(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if !isAdmin && m.Author.ID != os.Getenv("DEV_ID") {
-		s.ChannelMessageSend(m.ChannelID, "You don't have permission to register commands")
 		return
 	}
 

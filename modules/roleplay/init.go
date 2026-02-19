@@ -1,0 +1,96 @@
+package roleplay
+
+import (
+	"math/rand"
+	"time"
+
+	"github.com/S42yt/tuubaa-bot/core"
+	"github.com/S42yt/tuubaa-bot/modules/roleplay/commands"
+	"github.com/bwmarrin/discordgo"
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+
+	subcommands := []struct {
+		Name        string
+		Description string
+	}{
+		{"cry", "Cry reaction"},
+		{"pat", "Pat someone"},
+		{"sad", "Sad reaction"},
+		{"scared", "Scared reaction"},
+		{"shy", "Shy reaction"},
+		{"sleep", "Sleep reaction"},
+		{"smug", "Smug reaction"},
+		{"yay", "Yay reaction"},
+		{"cuddle", "Cuddle reaction"},
+		{"nervous", "Nervous reaction"},
+		{"no", "No reaction"},
+		{"cheers", "Cheers reaction"},
+		{"blush", "Blush reaction"},
+		{"slap", "Slap reaction"},
+		{"cool", "Cool reaction"},
+		{"hug", "Hug reaction"},
+		{"facepalm", "Facepalm reaction"},
+		{"happy", "Happy reaction"},
+		{"laugh", "Laugh reaction"},
+		{"mad", "Mad reaction"},
+		{"evil", "Evil reaction"},
+		{"love", "Love reaction"},
+	}
+
+	var options []*discordgo.ApplicationCommandOption
+	for _, sc := range subcommands {
+		options = append(options, &discordgo.ApplicationCommandOption{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        sc.Name,
+			Description: sc.Description,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "Optional target user",
+					Required:    false,
+				},
+			},
+		})
+	}
+
+	rpCmd := &core.Command{
+		Name:          "rp",
+		Description:   "Roleplay reactions (subcommands)",
+		Options:       options,
+		AllowEveryone: true,
+		Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+			data := i.ApplicationCommandData()
+			if len(data.Options) == 0 {
+				return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{Content: "Bitte Unterbefehl angeben."},
+				})
+			}
+			sub := data.Options[0]
+			return commands.RolePlayHandler(sub.Name)(s, i)
+		},
+	}
+
+	_ = core.Register(rpCmd)
+
+	cookieCmd := &core.Command{
+		Name:        "cookie",
+		Description: "Schenk jemanden einen Cookie",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionUser,
+				Name:        "user",
+				Description: "Wem willst du einen Cookie geben?",
+				Required:    true,
+			},
+		},
+		AllowEveryone: true,
+		Handler:       commands.CookieHandler(),
+	}
+
+	_ = core.Register(cookieCmd)
+}

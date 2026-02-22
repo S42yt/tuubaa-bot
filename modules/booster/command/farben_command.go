@@ -2,19 +2,22 @@ package command
 
 import (
 	"fmt"
-	"os"
 
 	bembed "github.com/S42yt/tuubaa-bot/modules/booster/embed"
+	"github.com/S42yt/tuubaa-bot/modules/config"
 	ulog "github.com/S42yt/tuubaa-bot/utils/logger"
 	"github.com/bwmarrin/discordgo"
 )
 
 func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) error {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		ulog.Info("FarbenHandler invoked: guild=%s", i.GuildID)
 		ulog.Debug("FarbenHandler invoked user=%s", i.Member.User.ID)
 
 		data := i.ApplicationCommandData()
+		ulog.Debug("FarbenHandler: interaction data name=%s options=%d", data.Name, len(data.Options))
 		if len(data.Options) == 0 {
+			ulog.Warn("FarbenHandler: no options provided")
 			resp := &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: &discordgo.InteractionResponseData{Content: "Bitte eine Auswahl treffen."}}
 			if err := s.InteractionRespond(i.Interaction, resp); err != nil {
 				ulog.Warn("FarbenHandler: InteractionRespond failed: %v", err)
@@ -24,21 +27,42 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 		}
 
 		choice := data.Options[0].StringValue()
+		ulog.Info("FarbenHandler: user %s selected=%s", i.Member.User.ID, choice)
 
 		selectable := []string{"Unschuldiges Kind", "Verdächtiges Kind", "Schuldiges Kind", "Mit Entführer", "Meisterentführer", "Beifahrer", "Van Upgrader"}
 
-		envMap := map[string]string{
-			"Unschuldiges Kind": os.Getenv("ROLE_UNSCHULDIGES_KIND"),
-			"Verdächtiges Kind": os.Getenv("ROLE_VERDAECHTIGES_KIND"),
-			"Schuldiges Kind":   os.Getenv("ROLE_SCHULDIGES_KIND"),
-			"Mit Entführer":     os.Getenv("ROLE_MIT_ENTFUEHRER"),
-			"Meisterentführer":  os.Getenv("ROLE_MEISTERENTFUEHRER"),
-			"Beifahrer":         os.Getenv("ROLE_BEIFAHRER"),
-			"Van Upgrader":      os.Getenv("ROLE_VAN_UPGRADER"),
+		choiceKey := map[string]string{
+			"Unschuldiges Kind": "ROLE_UNSCHULDIGES_KIND",
+			"Verdächtiges Kind": "ROLE_VERDAECHTIGES_KIND",
+			"Schuldiges Kind":   "ROLE_SCHULDIGES_KIND",
+			"Mit Entführer":     "ROLE_MIT_ENTFUEHRER",
+			"Meisterentführer":  "ROLE_MEISTERENTFUEHRER",
+			"Beifahrer":         "ROLE_BEIFAHRER",
+			"Van Upgrader":      "ROLE_VAN_UPGRADER",
 		}
 
-		boosterRoleID := os.Getenv("ROLE_VAN_UPGRADER")
+		// Fetch roles map from DB (keys like ROLE_VAN_UPGRADER -> roleID)
+		rolesMap, err := config.GetRoles(i.GuildID)
+		if err != nil {
+			ulog.Warn("FarbenHandler: GetRoles error for guild %s: %v", i.GuildID, err)
+			data := bembed.BuildResponse("Fehler", "Fehler beim Lesen der Konfiguration.", 0xe74c3c, "", true)
+			return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: data})
+		}
+
+		envMap := map[string]string{}
+		for human, key := range choiceKey {
+			if v, ok := rolesMap[key]; ok {
+				envMap[human] = v
+			} else {
+				envMap[human] = ""
+			}
+		}
+		ulog.Debug("FarbenHandler: envMap(human->roleID)=%v rolesMap=%v", envMap, rolesMap)
+
+		boosterRoleID := envMap["Van Upgrader"]
+		ulog.Debug("FarbenHandler: boosterRoleID=%s (from envMap)", boosterRoleID)
 		if boosterRoleID == "" {
+			ulog.Warn("FarbenHandler: missing booster role config for guild=%s", i.GuildID)
 			data := bembed.BuildResponse("Van Upgrader fehlt", "Die Van Upgrader-Rolle ist auf diesem Server nicht konfiguriert. lol", 0xe74c3c, "", true)
 			return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: data})
 		}
@@ -51,6 +75,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 			}
 		}
 		if !hasBooster {
+			ulog.Info("FarbenHandler: user %s does not have booster role", i.Member.User.ID)
 			data := bembed.BuildResponse("Nicht special :((((", "Du benötigst die Van Upgrader Rolle, um diesen Befehl zu verwenden :(", 0xe74c3c, "", true)
 			return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: data})
 		}
@@ -63,6 +88,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 			}
 		}
 		if !found {
+			ulog.Warn("FarbenHandler: invalid selection '%s' from user %s", choice, i.Member.User.ID)
 			data := bembed.BuildResponse("Ungültige Auswahl", "Die gewählte Option ist ungültig. wie hast du das gemacht o.o", 0xe74c3c, "", true)
 			return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: data})
 		}
@@ -73,16 +99,16 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 			if id == "" {
 				continue
 			}
-			// Never include the booster/Van Upgrader role in the generic removal list
-			// so selecting a normal color does not strip the Van Upgrader role.
 			if id == boosterRoleID {
 				continue
 			}
 			removeIDs = append(removeIDs, id)
 		}
+		ulog.Debug("FarbenHandler: removeIDs=%v", removeIDs)
 
 		selRoleID := envMap[choice]
 		if selRoleID == "" {
+			ulog.Warn("FarbenHandler: selected role not configured for choice=%s guild=%s", choice, i.GuildID)
 			data := bembed.BuildResponse("Rolle nicht konfiguriert", fmt.Sprintf("Die Rolle '%s' ist nicht konfiguriert LOL meld dich an musa", choice), 0xe74c3c, "", true)
 			return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: data})
 		}
@@ -107,6 +133,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 					ulog.Warn("FarbenHandler: InteractionRespond failed: %v", err)
 					return err
 				}
+				ulog.Debug("FarbenHandler: aborting after failed add")
 				return nil
 			}
 
@@ -119,6 +146,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 				ulog.Warn("FarbenHandler: InteractionRespond failed: %v", err)
 				return err
 			}
+			ulog.Info("FarbenHandler: Van Upgrader set for user %s", i.Member.User.ID)
 			return nil
 		}
 
@@ -142,6 +170,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 				ulog.Warn("FarbenHandler: InteractionRespond failed: %v", err)
 				return err
 			}
+			ulog.Debug("FarbenHandler: aborting after failed add (non-van)")
 			return nil
 		}
 
@@ -154,6 +183,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 			ulog.Warn("FarbenHandler: InteractionRespond failed: %v", err)
 			return err
 		}
+		ulog.Info("FarbenHandler: role %s assigned to user %s", selRoleID, i.Member.User.ID)
 		return nil
 	}
 }

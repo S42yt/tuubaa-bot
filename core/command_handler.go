@@ -50,11 +50,15 @@ func Register(cmd *Command) error {
 }
 
 func Init(s *discordgo.Session) error {
-	guildID := os.Getenv("GUILD_ID")
-	if guildID == "" {
-		return errors.New("GUILD_ID not set; this bot uses guild-only commands")
+	if s.State == nil || s.State.User == nil {
+		return errors.New("session state not ready; call Init from Ready handler")
 	}
-	return InitWithGuild(s, guildID)
+	for _, g := range s.State.Guilds {
+		if err := InitWithGuild(s, g.ID); err != nil {
+			ulog.Warn("failed to init commands for guild %s: %v", g.ID, err)
+		}
+	}
+	return nil
 }
 
 func InitWithGuild(s *discordgo.Session, guildID string) error {
@@ -132,7 +136,6 @@ func Clear(s *discordgo.Session, guildID string) error {
 	if _, err := s.ApplicationCommandBulkOverwrite(appID, guildID, []*discordgo.ApplicationCommand{}); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -214,14 +217,6 @@ func interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	isAdmin := false
-	for _, p := range i.Member.Roles {
-		if p == os.Getenv("DEV_ROLE") {
-			isAdmin = true
-		}
-		if p == os.Getenv("STAFF_ROLE") {
-			isAdmin = true
-		}
-	}
 	if i.Member.Permissions&discordgo.PermissionAdministrator != 0 {
 		isAdmin = true
 	}
@@ -293,29 +288,18 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func handleRegisterCommands(s *discordgo.Session, m *discordgo.MessageCreate) {
-	guildID := os.Getenv("GUILD_ID")
+	guildID := m.GuildID
 	if guildID == "" {
-		s.ChannelMessageSend(m.ChannelID, "GUILD_ID not set in environment")
-		return
-	}
-
-	isAdmin := false
-	if m.Member != nil {
-		for _, roleID := range m.Member.Roles {
-			if roleID == os.Getenv("DEV_ROLE") {
-				isAdmin = true
-				break
-			}
+		ch, err := s.Channel(m.ChannelID)
+		if err != nil || ch.GuildID == "" {
+			ulog.Warn("handleRegisterCommands: could not resolve guild ID: %v", err)
+			s.ChannelMessageSend(m.ChannelID, "Could not resolve Guild ID")
+			return
 		}
-		if m.Member.Permissions&discordgo.PermissionAdministrator != 0 {
-			isAdmin = true
-		}
+		guildID = ch.GuildID
 	}
 
-	if !isAdmin && m.Author.ID != os.Getenv("DEV_ID") {
-		return
-	}
-
+	ulog.Debug("handleRegisterCommands: resolved GUILD_ID=%s", guildID)
 	s.ChannelMessageSend(m.ChannelID, "Registering commands...")
 
 	if err := InitWithGuild(s, guildID); err != nil {

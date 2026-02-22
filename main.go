@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/S42yt/tuubaa-bot/core"
-	_ "github.com/S42yt/tuubaa-bot/modules/roleplay"
 	_ "github.com/S42yt/tuubaa-bot/modules/booster"
+	_ "github.com/S42yt/tuubaa-bot/modules/config"
+	_ "github.com/S42yt/tuubaa-bot/modules/roleplay"
 	logger "github.com/S42yt/tuubaa-bot/utils/logger"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
@@ -80,6 +81,12 @@ func ready(s *discordgo.Session, r *discordgo.Ready) {
 	}
 
 	guildID := os.Getenv("GUILD_ID")
+	if guildID == "" {
+		if v, err := core.GetGuildIDCore("GUILD_ID"); err == nil {
+			guildID = v
+		}
+	}
+
 	if guildID != "" {
 		if err := core.InitWithGuild(s, guildID); err != nil {
 			logger.Error("failed to init command handler (guild): %v", err)

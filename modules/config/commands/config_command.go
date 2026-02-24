@@ -13,8 +13,10 @@ func ConfigRoleHandler() func(s *discordgo.Session, i *discordgo.InteractionCrea
 
 		sub := data.Options[0]
 		switch sub.Name {
-        case "setrole":
+		case "setrole":
 			return handleSetRole(s, i)
+		case "setchannel":
+			return handleSetChannel(s, i)
 		default:
 			return respond(s, i, "Unknown subcommand")
 		}

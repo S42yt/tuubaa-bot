@@ -21,3 +21,18 @@ func BuildRoleSetResponse(roleKey, roleID, executor string) *discordgo.Interacti
 		Flags:      discordgo.MessageFlagsIsComponentsV2 | discordgo.MessageFlagsEphemeral,
 	}
 }
+
+func BuildChannelSetResponse(channelID, executor string) *discordgo.InteractionResponseData {
+	main := v2.NewTextDisplayBuilder().SetContent(fmt.Sprintf("## Channel <#%s> updated", channelID)).Build()
+	footer := v2.NewTextDisplayBuilder().SetContent(fmt.Sprintf("- Set to <#%s> by %s", channelID, executor)).Build()
+
+	comp := v2.NewContainerBuilder().SetAccentColor(0xFFD27A).
+		AddComponent(main).
+		AddComponent(footer).
+		Build()
+
+	return &discordgo.InteractionResponseData{
+		Components: []discordgo.MessageComponent{comp},
+		Flags:      discordgo.MessageFlagsIsComponentsV2 | discordgo.MessageFlagsEphemeral,
+	}
+}

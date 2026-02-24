@@ -11,7 +11,7 @@ import (
 
 func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) error {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		ulog.Info("FarbenHandler invoked: guild=%s", i.GuildID)
+		ulog.Debug("FarbenHandler invoked: guild=%s", i.GuildID)
 		ulog.Debug("FarbenHandler invoked user=%s", i.Member.User.ID)
 
 		data := i.ApplicationCommandData()
@@ -27,10 +27,10 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 		}
 
 		choice := data.Options[0].StringValue()
-		ulog.Info("FarbenHandler: user %s selected=%s", i.Member.User.ID, choice)
+		ulog.Debug("FarbenHandler: user %s selected=%s", i.Member.User.ID, choice)
 
+		
 		selectable := []string{"Unschuldiges Kind", "Verdächtiges Kind", "Schuldiges Kind", "Mit Entführer", "Meisterentführer", "Beifahrer", "Van Upgrader"}
-
 		choiceKey := map[string]string{
 			"Unschuldiges Kind": "ROLE_UNSCHULDIGES_KIND",
 			"Verdächtiges Kind": "ROLE_VERDAECHTIGES_KIND",
@@ -41,7 +41,6 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 			"Van Upgrader":      "ROLE_VAN_UPGRADER",
 		}
 
-		// Fetch roles map from DB (keys like ROLE_VAN_UPGRADER -> roleID)
 		rolesMap, err := config.GetRoles(i.GuildID)
 		if err != nil {
 			ulog.Warn("FarbenHandler: GetRoles error for guild %s: %v", i.GuildID, err)
@@ -75,7 +74,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 			}
 		}
 		if !hasBooster {
-			ulog.Info("FarbenHandler: user %s does not have booster role", i.Member.User.ID)
+			ulog.Debug("FarbenHandler: user %s does not have booster role", i.Member.User.ID)
 			data := bembed.BuildResponse("Nicht special :((((", "Du benötigst die Van Upgrader Rolle, um diesen Befehl zu verwenden :(", 0xe74c3c, "", true)
 			return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: data})
 		}
@@ -146,7 +145,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 				ulog.Warn("FarbenHandler: InteractionRespond failed: %v", err)
 				return err
 			}
-			ulog.Info("FarbenHandler: Van Upgrader set for user %s", i.Member.User.ID)
+			ulog.Debug("FarbenHandler: Van Upgrader set for user %s", i.Member.User.ID)
 			return nil
 		}
 
@@ -183,7 +182,7 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 			ulog.Warn("FarbenHandler: InteractionRespond failed: %v", err)
 			return err
 		}
-		ulog.Info("FarbenHandler: role %s assigned to user %s", selRoleID, i.Member.User.ID)
+		ulog.Debug("FarbenHandler: role %s assigned to user %s", selRoleID, i.Member.User.ID)
 		return nil
 	}
 }

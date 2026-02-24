@@ -36,10 +36,34 @@ func init() {
 		},
 	}
 
+	setChannel := &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Name:        "setchannel",
+		Description: "Set a configured channel for this guild",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "which",
+				Description: "Which channel config to set",
+				Required:    true,
+				Choices: []*discordgo.ApplicationCommandOptionChoice{
+					{Name: "Welcome Channel", Value: "welcome"},
+					{Name: "Main Channel", Value: "main"},
+				},
+			},
+			{
+				Type:        discordgo.ApplicationCommandOptionChannel,
+				Name:        "channel",
+				Description: "Channel to use for the selected config",
+				Required:    true,
+			},
+		},
+	}
+
 	cfgCmd := &core.Command{
 		Name:        "config",
 		Description: "Guild-specific configuration",
-		Options:     []*discordgo.ApplicationCommandOption{setRole},
+		Options:     []*discordgo.ApplicationCommandOption{setRole, setChannel},
 		AllowAdmin:  true,
 		Handler:     commands.ConfigRoleHandler(),
 	}

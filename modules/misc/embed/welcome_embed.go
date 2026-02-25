@@ -14,11 +14,12 @@ import (
 	v2 "github.com/S42yt/tuubaa-bot/utils/embed"
 	"github.com/bwmarrin/discordgo"
 	"github.com/fogleman/gg"
+	"golang.org/x/image/draw"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-const yellowAccent = 0xFAD900
+const pinkAccent = 0xE8629A
 
 func loadFont(dc *gg.Context, path string, size float64) error {
 	fontBytes, err := os.ReadFile(path)
@@ -47,8 +48,14 @@ func setFont(dc *gg.Context, size float64) {
 }
 
 func drawShadowText(dc *gg.Context, text string, x, y float64) {
-	dc.SetRGBA(0, 0, 0, 0.6)
+	dc.SetRGBA(0, 0, 0, 0.7)
 	dc.DrawStringAnchored(text, x+2, y+2, 0.5, 0.5)
+}
+
+func scaleImageToFit(src image.Image, targetSize int) image.Image {
+	dst := image.NewRGBA(image.Rect(0, 0, targetSize, targetSize))
+	draw.BiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+	return dst
 }
 
 func BuildWelcomeImage(avatarURL, displayName string, memberCount int) (*bytes.Buffer, error) {
@@ -58,8 +65,8 @@ func BuildWelcomeImage(avatarURL, displayName string, memberCount int) (*bytes.B
 	if err != nil || len(files) == 0 {
 		return nil, err
 	}
-
 	bgPath := files[rand.Intn(len(files))]
+
 	bgFile, err := os.Open(bgPath)
 	if err != nil {
 		return nil, err
@@ -75,60 +82,60 @@ func BuildWelcomeImage(avatarURL, displayName string, memberCount int) (*bytes.B
 	w := float64(dc.Width())
 	h := float64(dc.Height())
 
-	dc.SetRGBA(0, 0, 0, 0.45)
+	dc.SetRGBA(0, 0, 0, 0.5)
 	dc.DrawRectangle(0, 0, w, h)
 	dc.Fill()
+
+	avatarSize := int(w * 0.22)
+	cx := int(w / 2)
+	cy := int(h / 2)
+	cornerRadius := float64(avatarSize) * 0.18
+
+	titleY := float64(cy) - float64(avatarSize)/2 - 50
+	setFont(dc, h*0.065)
+	drawShadowText(dc, "Wilkommen zum goldenen van von tuubaa !!!", w/2, titleY)
+	dc.SetRGB(1, 1, 1)
+	dc.DrawStringAnchored("Wilkommen zum goldenen van von tuubaa !!!", w/2, titleY, 0.5, 0.5)
 
 	resp, err := http.Get(avatarURL)
 	if err == nil {
 		defer resp.Body.Close()
 		avImg, _, err := image.Decode(resp.Body)
 		if err == nil {
-			size := int(w * 0.22)
-			cx := int(w / 2)
-			cy := int(h * 0.38)
-			radius := float64(size) * 0.18
+			scaled := scaleImageToFit(avImg, avatarSize)
 
-			borderSize := size + 8
-			borderDC := gg.NewContext(borderSize, borderSize)
-			borderDC.SetRGB(0.98, 0.85, 0.13)
-			borderDC.DrawRoundedRectangle(0, 0, float64(borderSize), float64(borderSize), radius+2)
-			borderDC.Fill()
-			dc.DrawImageAnchored(borderDC.Image(), cx, cy, 0.5, 0.5)
-			avDC := gg.NewContext(size, size)
-			avDC.DrawRoundedRectangle(0, 0, float64(size), float64(size), radius)
+			avDC := gg.NewContext(avatarSize, avatarSize)
+			avDC.DrawRoundedRectangle(0, 0, float64(avatarSize), float64(avatarSize), cornerRadius)
 			avDC.Clip()
-			avDC.DrawImageAnchored(avImg, size/2, size/2, 0.5, 0.5)
+			avDC.DrawImage(scaled, 0, 0)
+
 			dc.DrawImageAnchored(avDC.Image(), cx, cy, 0.5, 0.5)
 		}
 	}
 
-	textX := w / 2
-	nameY := h * 0.64
-	memberY := h * 0.76
-
-	setFont(dc, h*0.055)
-	drawShadowText(dc, fmt.Sprintf("Willkommen, %s!", displayName), textX, nameY)
-	dc.SetRGB(0.98, 0.85, 0.13)
-	dc.DrawStringAnchored(fmt.Sprintf("Willkommen, %s!", displayName), textX, nameY, 0.5, 0.5)
-
-	setFont(dc, h*0.038)
-	drawShadowText(dc, fmt.Sprintf("Du bist Mitglied #%d", memberCount), textX, memberY)
+	nameY := float64(cy) + float64(avatarSize)/2 + 60
+	setFont(dc, h*0.065)
+	drawShadowText(dc, displayName, w/2, nameY)
 	dc.SetRGB(1, 1, 1)
-	dc.DrawStringAnchored(fmt.Sprintf("Du bist Mitglied #%d", memberCount), textX, memberY, 0.5, 0.5)
+	dc.DrawStringAnchored(displayName, w/2, nameY, 0.5, 0.5)
+
+	memberY := nameY + h*0.1
+	setFont(dc, h*0.05)
+	drawShadowText(dc, fmt.Sprintf("Member #%d", memberCount), w/2, memberY)
+	dc.SetRGB(1, 1, 1)
+	dc.DrawStringAnchored(fmt.Sprintf("Member #%d", memberCount), w/2, memberY, 0.5, 0.5)
 
 	buf := &bytes.Buffer{}
 	if err := png.Encode(buf, dc.Image()); err != nil {
 		return nil, err
 	}
-
 	return buf, nil
 }
 
 func BuildWelcomeComponents(avatarURL, mainChannelID, displayName string, memberCount int) ([]discordgo.MessageComponent, error) {
 	content := v2.NewTextDisplayBuilder().SetContent(fmt.Sprintf(
-		"# Willkommen 👋\nDu bist jetzt teil der gefangenen im Van!\nOb du entkommst? Natürlich nicht :3\n\nViel Spaß in der Haupthalle <#%s>\n\n-# Willkommen %s, du bist Mitglied #%d",
-		mainChannelID, displayName, memberCount,
+		"# Willkommen 👋\nDu bist jetzt teil der gefangenen im Van!\nOb du entkommst? Natürlich nicht :3\n\nViel Spaß in der Haupthalle <#%s>",
+		mainChannelID,
 	)).Build()
 
 	section := v2.NewSectionBuilder()
@@ -139,7 +146,7 @@ func BuildWelcomeComponents(avatarURL, mainChannelID, displayName string, member
 	mg.AddImageURL("attachment://welcome.png")
 
 	container := v2.NewContainerBuilder().
-		SetAccentColor(yellowAccent).
+		SetAccentColor(pinkAccent).
 		AddComponent(section.Build()).
 		AddComponent(mg.Build())
 

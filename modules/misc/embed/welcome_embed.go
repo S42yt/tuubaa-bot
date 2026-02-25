@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	_ "image/gif"
 	"image/png"
 	"math/rand"
 	"net/http"
@@ -14,12 +15,12 @@ import (
 	v2 "github.com/S42yt/tuubaa-bot/utils/embed"
 	"github.com/bwmarrin/discordgo"
 	"github.com/fogleman/gg"
-	"golang.org/x/image/draw"
 	"github.com/golang/freetype/truetype"
+	xdraw "golang.org/x/image/draw"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-const pinkAccent = 0xE8629A
+const yellowAccent = 0xFAD900
 
 func loadFont(dc *gg.Context, path string, size float64) error {
 	fontBytes, err := os.ReadFile(path)
@@ -54,7 +55,7 @@ func drawShadowText(dc *gg.Context, text string, x, y float64) {
 
 func scaleImageToFit(src image.Image, targetSize int) image.Image {
 	dst := image.NewRGBA(image.Rect(0, 0, targetSize, targetSize))
-	draw.BiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+	xdraw.BiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), xdraw.Over, nil)
 	return dst
 }
 
@@ -94,7 +95,7 @@ func BuildWelcomeImage(avatarURL, displayName string, memberCount int) (*bytes.B
 	titleY := float64(cy) - float64(avatarSize)/2 - 50
 	setFont(dc, h*0.065)
 	drawShadowText(dc, "Wilkommen zum goldenen van von tuubaa !!!", w/2, titleY)
-	dc.SetRGB(1, 1, 1)
+	dc.SetRGB(0.98, 0.85, 0.13)
 	dc.DrawStringAnchored("Wilkommen zum goldenen van von tuubaa !!!", w/2, titleY, 0.5, 0.5)
 
 	resp, err := http.Get(avatarURL)
@@ -102,13 +103,21 @@ func BuildWelcomeImage(avatarURL, displayName string, memberCount int) (*bytes.B
 		defer resp.Body.Close()
 		avImg, _, err := image.Decode(resp.Body)
 		if err == nil {
-			scaled := scaleImageToFit(avImg, avatarSize)
+			borderThickness := 4
+			borderSize := avatarSize + borderThickness*2
+			borderRadius := cornerRadius + 2
 
+			borderDC := gg.NewContext(borderSize, borderSize)
+			borderDC.SetRGB(0.98, 0.85, 0.13)
+			borderDC.DrawRoundedRectangle(0, 0, float64(borderSize), float64(borderSize), borderRadius)
+			borderDC.Fill()
+			dc.DrawImageAnchored(borderDC.Image(), cx, cy, 0.5, 0.5)
+
+			scaled := scaleImageToFit(avImg, avatarSize)
 			avDC := gg.NewContext(avatarSize, avatarSize)
 			avDC.DrawRoundedRectangle(0, 0, float64(avatarSize), float64(avatarSize), cornerRadius)
 			avDC.Clip()
 			avDC.DrawImage(scaled, 0, 0)
-
 			dc.DrawImageAnchored(avDC.Image(), cx, cy, 0.5, 0.5)
 		}
 	}
@@ -121,9 +130,9 @@ func BuildWelcomeImage(avatarURL, displayName string, memberCount int) (*bytes.B
 
 	memberY := nameY + h*0.1
 	setFont(dc, h*0.05)
-	drawShadowText(dc, fmt.Sprintf("Member #%d", memberCount), w/2, memberY)
+	drawShadowText(dc, fmt.Sprintf("Gefangener #%d", memberCount), w/2, memberY)
 	dc.SetRGB(1, 1, 1)
-	dc.DrawStringAnchored(fmt.Sprintf("Member #%d", memberCount), w/2, memberY, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("Gefangener #%d", memberCount), w/2, memberY, 0.5, 0.5)
 
 	buf := &bytes.Buffer{}
 	if err := png.Encode(buf, dc.Image()); err != nil {
@@ -132,9 +141,10 @@ func BuildWelcomeImage(avatarURL, displayName string, memberCount int) (*bytes.B
 	return buf, nil
 }
 
-func BuildWelcomeComponents(avatarURL, mainChannelID, displayName string, memberCount int) ([]discordgo.MessageComponent, error) {
+func BuildWelcomeComponents(avatarURL, mainChannelID, displayName string, memberCount int, memberId string) ([]discordgo.MessageComponent, error) {
 	content := v2.NewTextDisplayBuilder().SetContent(fmt.Sprintf(
-		"# Willkommen 👋\nDu bist jetzt teil der gefangenen im Van!\nOb du entkommst? Natürlich nicht :3\n\nViel Spaß in der Haupthalle <#%s>",
+		"# Willkommen 👋\nHey <@%s> bist jetzt teil der gefangenen im Van!\nOb du entkommst? Natürlich nicht :3\n\nViel Spaß in der Haupthalle <#%s>\nDu kannst dir Rollen über <id:customize> geben!",
+		memberId,
 		mainChannelID,
 	)).Build()
 
@@ -146,7 +156,7 @@ func BuildWelcomeComponents(avatarURL, mainChannelID, displayName string, member
 	mg.AddImageURL("attachment://welcome.png")
 
 	container := v2.NewContainerBuilder().
-		SetAccentColor(pinkAccent).
+		SetAccentColor(yellowAccent).
 		AddComponent(section.Build()).
 		AddComponent(mg.Build())
 

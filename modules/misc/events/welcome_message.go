@@ -41,7 +41,8 @@ func welcomeHandler(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
 	}
 
 	avatarURL := m.User.AvatarURL("1024")
-	displayName := m.User.Username
+	displayName := m.User.DisplayName()
+	memberId := m.User.ID
 
 	var memberCount int
 	if g, err := s.GuildWithCounts(m.GuildID); err == nil && g != nil {
@@ -57,7 +58,7 @@ func welcomeHandler(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
 
 	file := &discordgo.File{Name: "welcome.png", ContentType: "image/png", Reader: buf}
 
-	comps, cerr := vembed.BuildWelcomeComponents(avatarURL, doc.MainChannel, displayName, memberCount)
+	comps, cerr := vembed.BuildWelcomeComponents(avatarURL, doc.MainChannel, displayName, memberCount, memberId)
 	if cerr != nil {
 		logger.Debug("welcomeHandler: build components failed: %v", cerr)
 	}
@@ -67,7 +68,7 @@ func welcomeHandler(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
 	}
 	if cerr == nil && len(comps) > 0 {
 		msg.Components = comps
-		msg.Flags = discordgo.MessageFlagsIsComponentsV2
+		msg.Flags = discordgo.MessageFlagsIsComponentsV2 | discordgo.MessageFlagsSuppressNotifications
 	}
 
 	sent, err := s.ChannelMessageSendComplex(doc.WelcomeChannel, msg)

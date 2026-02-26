@@ -1,9 +1,9 @@
 package rules
 
 import (
-	_ "github.com/S42yt/tuubaa-bot/modules/misc/events"
 	"github.com/S42yt/tuubaa-bot/core"
 	"github.com/S42yt/tuubaa-bot/modules/misc/commands"
+	_ "github.com/S42yt/tuubaa-bot/modules/misc/events"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -38,6 +38,13 @@ func init() {
 		Handler:    commands.SetRuleHandler(),
 	}
 
+	pingCmd := &core.Command{
+		Name:          "ping",
+		Description:   "Ping the bot and database",
+		AllowEveryone: true,
+		Handler:       commands.PingHandler(),
+	}
+
 	modalHandler := &core.ModalHandler{
 		CustomID:   commands.SetRuleModalID,
 		AllowAdmin: true,
@@ -46,5 +53,6 @@ func init() {
 
 	_ = core.Register(ruleCmd)
 	_ = core.Register(setupCmd)
+	_ = core.Register(pingCmd)
 	_ = core.RegisterModal(modalHandler)
 }

@@ -60,13 +60,13 @@ func handleSetChannel(s *discordgo.Session, i *discordgo.InteractionCreate) erro
 		return respond(s, i, fmt.Sprintf("Failed to save config: %v", err))
 	}
 	if res.MatchedCount == 0 {
-		doc := bson.M{"guild_id": i.GuildID, "welcome_channel": targetChannelID}
+		doc := bson.M{"guild_id": i.GuildID, whichKey + "_channel": targetChannelID}
 		if _, err := coll.InsertOne(ctx, doc); err != nil {
 			return respond(s, i, fmt.Sprintf("Failed to create config: %v", err))
 		}
 	}
 
-	resp := vembed.BuildChannelSetResponse(targetChannelID, i.Member.User.Username)
+	resp := vembed.BuildChannelSetResponse(targetChannelID, i.Member.User.Username, whichKey)
 
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,

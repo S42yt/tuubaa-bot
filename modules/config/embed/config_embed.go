@@ -22,8 +22,8 @@ func BuildRoleSetResponse(roleKey, roleID, executor string) *discordgo.Interacti
 	}
 }
 
-func BuildChannelSetResponse(channelID, executor string) *discordgo.InteractionResponseData {
-	main := v2.NewTextDisplayBuilder().SetContent(fmt.Sprintf("## Channel <#%s> updated", channelID)).Build()
+func BuildChannelSetResponse(channelID, executor string, configChannel string) *discordgo.InteractionResponseData {
+	main := v2.NewTextDisplayBuilder().SetContent(fmt.Sprintf("## Channel %s updated", configChannel)).Build()
 	footer := v2.NewTextDisplayBuilder().SetContent(fmt.Sprintf("- Set to <#%s> by %s", channelID, executor)).Build()
 
 	comp := v2.NewContainerBuilder().SetAccentColor(0xFFD27A).

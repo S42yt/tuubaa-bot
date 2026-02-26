@@ -78,6 +78,11 @@ func InitWithGuild(s *discordgo.Session, guildID string) error {
 		ulog.Warn("failed to remove global conflicting commands: %v", err)
 	}
 
+	if !modalHandlerAttached {
+		s.AddHandler(modalInteractionHandler)
+		modalHandlerAttached = true
+	}
+
 	if err := Clear(s, guildID); err != nil {
 		ulog.Warn("failed to clear existing guild commands: %v", err)
 	}

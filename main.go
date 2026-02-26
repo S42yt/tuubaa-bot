@@ -18,6 +18,14 @@ import (
 )
 
 func main() {
+	
+	debugLevel := false
+	if os.Getenv("LOG_DEBUG") == "true" {
+		debugLevel = true
+	}
+
+	logger.SetDebug(debugLevel)
+
 	if err := godotenv.Load(); err != nil {
 		logger.Warn(".env file not found, using system environment variables")
 	}
@@ -26,6 +34,7 @@ func main() {
 	if token == "" {
 		token = os.Getenv("DISCORD_TOKEN")
 	}
+
 
 	if token == "" {
 		logger.Error("Discord bot token not found. Set `DISCORD_TOKEN` or `TOKEN` environment variable, or create a `.env` file with TOKEN=your_token")

@@ -47,20 +47,25 @@ func handleSetChannel(s *discordgo.Session, i *discordgo.InteractionCreate) erro
 	coll := db.Collection("guild_configs")
 	filter := bson.M{"guild_id": i.GuildID}
 	var update bson.M
+	var fieldName string
 	switch whichKey {
 	case "welcome":
-		update = bson.M{"$set": bson.M{"welcome_channel": targetChannelID}}
+		fieldName = "welcome_channel"
 	case "main":
-		update = bson.M{"$set": bson.M{"main_channel": targetChannelID}}
+		fieldName = "main_channel"
+	case "counterchannel":
+		fieldName = "counter_channel"
 	default:
 		return respond(s, i, "Unknown channel config key")
 	}
+	update = bson.M{"$set": bson.M{fieldName: targetChannelID}}
 	res, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return respond(s, i, fmt.Sprintf("Failed to save config: %v", err))
 	}
 	if res.MatchedCount == 0 {
-		doc := bson.M{"guild_id": i.GuildID, whichKey + "_channel": targetChannelID}
+		doc := bson.M{"guild_id": i.GuildID}
+		doc[fieldName] = targetChannelID
 		if _, err := coll.InsertOne(ctx, doc); err != nil {
 			return respond(s, i, fmt.Sprintf("Failed to create config: %v", err))
 		}

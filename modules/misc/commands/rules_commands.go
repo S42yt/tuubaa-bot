@@ -152,7 +152,7 @@ func SetRuleModalHandler() func(s *discordgo.Session, i *discordgo.InteractionCr
 			return fmt.Errorf("failed to send rulebook: %w", err)
 		}
 
-		ulog.Info("Rulebook set in channel %s, message %s by %s", i.ChannelID, msg.ID, i.Member.User.Username)
+		ulog.Debug("Rulebook set in channel %s, message %s by %s", i.ChannelID, msg.ID, i.Member.User.Username)
 
 		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,

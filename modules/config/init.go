@@ -49,6 +49,7 @@ func init() {
 				Choices: []*discordgo.ApplicationCommandOptionChoice{
 					{Name: "Welcome Channel", Value: "welcome"},
 					{Name: "Main Channel", Value: "main"},
+					{Name: "Counter Channel", Value: "counterchannel"},
 				},
 			},
 			{

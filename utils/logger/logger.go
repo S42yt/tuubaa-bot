@@ -1,4 +1,4 @@
-package utils
+package logger
 
 import (
 	"fmt"
@@ -10,8 +10,17 @@ import (
 
 var (
 	debugEnabled = func() bool {
-		v := strings.ToLower(os.Getenv("LOG_DEBUG"))
-		return v == "1" || v == "true"
+		// support multiple env vars for flexibility
+		if v := strings.ToLower(os.Getenv("LOG_DEBUG")); v == "1" || v == "true" {
+			return true
+		}
+		if v := strings.ToLower(os.Getenv("DEBUG")); v == "1" || v == "true" {
+			return true
+		}
+		if v := strings.ToLower(os.Getenv("LOG_LEVEL")); strings.Contains(v, "debug") {
+			return true
+		}
+		return false
 	}()
 )
 
@@ -55,6 +64,8 @@ func (l *logger) Debug(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	l.std.Printf("%s %s %s\n", color("90", timestamp()), prefix, msg)
 }
+
+func SetDebug(enabled bool) { debugEnabled = enabled }
 
 func Info(format string, args ...interface{})  { Logger.Info(format, args...) }
 func Warn(format string, args ...interface{})  { Logger.Warn(format, args...) }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	ulog "github.com/S42yt/tuubaa-bot/utils/logger"
+	users "github.com/S42yt/tuubaa-bot/utils/users"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -226,7 +227,7 @@ func interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		isAdmin = true
 	}
 
-	if !(cmd.AllowEveryone || cmd.AllowAdmin && isAdmin || cmd.AllowDev && os.Getenv("DEV_ID") == member.ID || cmd.AllowStaff && isAdmin) {
+	if !(cmd.AllowEveryone || cmd.AllowAdmin && isAdmin || cmd.AllowDev && os.Getenv("DEV_ID") == member.ID || cmd.AllowStaff && isAdmin || users.GetUserByID(member.ID) != nil) {
 		_ = respondEphemeral(s, i, "You do not have permission for this command")
 		return
 	}

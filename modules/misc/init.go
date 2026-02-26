@@ -45,6 +45,13 @@ func init() {
 		Handler:       commands.PingHandler(),
 	}
 
+	counterCmd := &core.Command{
+		Name:          "counter",
+		Description:   "Update or show the member counter channel",
+		AllowEveryone: true,
+		Handler:       commands.CounterHandler(),
+	}
+
 	modalHandler := &core.ModalHandler{
 		CustomID:   commands.SetRuleModalID,
 		AllowAdmin: true,
@@ -54,5 +61,6 @@ func init() {
 	_ = core.Register(ruleCmd)
 	_ = core.Register(setupCmd)
 	_ = core.Register(pingCmd)
+	_ = core.Register(counterCmd)
 	_ = core.RegisterModal(modalHandler)
 }

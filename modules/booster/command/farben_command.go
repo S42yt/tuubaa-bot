@@ -29,7 +29,6 @@ func FarbenHandler() func(*discordgo.Session, *discordgo.InteractionCreate) erro
 		choice := data.Options[0].StringValue()
 		ulog.Debug("FarbenHandler: user %s selected=%s", i.Member.User.ID, choice)
 
-		
 		selectable := []string{"Unschuldiges Kind", "Verdächtiges Kind", "Schuldiges Kind", "Mit Entführer", "Meisterentführer", "Beifahrer", "Van Upgrader"}
 		choiceKey := map[string]string{
 			"Unschuldiges Kind": "ROLE_UNSCHULDIGES_KIND",

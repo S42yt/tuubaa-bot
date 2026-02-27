@@ -48,7 +48,8 @@ func init() {
 	counterCmd := &core.Command{
 		Name:          "counter",
 		Description:   "Update or show the member counter channel",
-		AllowEveryone: true,
+		AllowEveryone: false,
+		AllowAdmin:    true,
 		Handler:       commands.CounterHandler(),
 	}
 

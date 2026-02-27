@@ -36,7 +36,6 @@ func init() {
 		{"happy", "Happy reaction"},
 		{"laugh", "Laugh reaction"},
 		{"mad", "Mad reaction"},
-		{"evil", "Evil reaction"},
 		{"love", "Love reaction"},
 	}
 

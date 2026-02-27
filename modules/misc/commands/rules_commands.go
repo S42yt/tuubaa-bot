@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	vembed "github.com/S42yt/tuubaa-bot/modules/misc/embed"
-	"github.com/bwmarrin/discordgo"
 	ulog "github.com/S42yt/tuubaa-bot/utils/logger"
+	"github.com/bwmarrin/discordgo"
 )
 
 var ruleChoices = []*discordgo.ApplicationCommandOptionChoice{

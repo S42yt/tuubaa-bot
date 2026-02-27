@@ -13,17 +13,15 @@ import (
 )
 
 type Command struct {
-	Name        string
-	Description string
-	Options     []*discordgo.ApplicationCommandOption
-	Handler     func(s *discordgo.Session, i *discordgo.InteractionCreate) error
-
+	Name            string
+	Description     string
+	Options         []*discordgo.ApplicationCommandOption
+	Handler         func(s *discordgo.Session, i *discordgo.InteractionCreate) error
 	Cooldown        int
 	OnlyBotChannel  bool
 	DisabledUsers   map[string]bool
 	DisabledChannel map[string]bool
 	AllowAdmin      bool
-	AllowDev        bool
 	AllowStaff      bool
 	AllowEveryone   bool
 }
@@ -68,13 +66,6 @@ func InitWithGuild(s *discordgo.Session, guildID string) error {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	if globals, err := s.ApplicationCommands(appID, ""); err == nil {
-		ulog.Debug("found %d global commands", len(globals))
-	}
-	if guilds, err := s.ApplicationCommands(appID, guildID); err == nil {
-		ulog.Debug("found %d guild commands for %s", len(guilds), guildID)
-	}
-
 	if err := removeGlobalConflicts(s); err != nil {
 		ulog.Warn("failed to remove global conflicting commands: %v", err)
 	}
@@ -88,16 +79,12 @@ func InitWithGuild(s *discordgo.Session, guildID string) error {
 		ulog.Warn("failed to clear existing guild commands: %v", err)
 	}
 
-	if s.State == nil || s.State.User == nil {
-		return errors.New("session state not ready; call InitWithGuild from Ready handler")
-	}
-
 	var appCommands []*discordgo.ApplicationCommand
 	for _, c := range commands {
 		appCommands = append(appCommands, &discordgo.ApplicationCommand{
-			Name:        c.Name,
-			Description: c.Description,
-			Options:     c.Options,
+			Name:                     c.Name,
+			Description:              c.Description,
+			Options:                  c.Options,
 		})
 	}
 
@@ -105,11 +92,7 @@ func InitWithGuild(s *discordgo.Session, guildID string) error {
 		return err
 	}
 
-	if cmds, err := s.ApplicationCommands(appID, guildID); err == nil {
-		ulog.Info("published %d guild commands for guild %s", len(cmds), guildID)
-	} else {
-		ulog.Warn("could not fetch guild commands after publish: %v", err)
-	}
+	ulog.Info("published guild commands for guild %s", guildID)
 
 	attachMu.Lock()
 	defer attachMu.Unlock()
@@ -129,6 +112,68 @@ func InitWithGuild(s *discordgo.Session, guildID string) error {
 			s.AddHandler(h)
 		}
 		eventsAttached = true
+	}
+
+	return nil
+}
+
+func applyCommandPermissions(s *discordgo.Session, appID, guildID string, cmdIDMap map[string]string) error {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	for _, cmd := range commands {
+		cmdID, ok := cmdIDMap[cmd.Name]
+		if !ok {
+			continue
+		}
+
+		var perms []*discordgo.ApplicationCommandPermissions
+
+		if cmd.AllowEveryone {
+			perms = append(perms, &discordgo.ApplicationCommandPermissions{
+				ID:         guildID,
+				Type:       discordgo.ApplicationCommandPermissionTypeRole,
+				Permission: true,
+			})
+		} else {
+			for _, u := range users.Users {
+				perms = append(perms, &discordgo.ApplicationCommandPermissions{
+					ID:         u.UserID,
+					Type:       discordgo.ApplicationCommandPermissionTypeUser,
+					Permission: true,
+				})
+			}
+
+			if cmd.AllowAdmin || cmd.AllowStaff {
+				roles, err := s.GuildRoles(guildID)
+				if err != nil {
+					ulog.Warn("could not fetch roles for guild %s: %v", guildID, err)
+				} else {
+					for _, role := range roles {
+						if role.Permissions&discordgo.PermissionAdministrator != 0 {
+							perms = append(perms, &discordgo.ApplicationCommandPermissions{
+								ID:         role.ID,
+								Type:       discordgo.ApplicationCommandPermissionTypeRole,
+								Permission: true,
+							})
+						}
+					}
+				}
+			}
+		}
+
+		if len(perms) == 0 {
+			continue
+		}
+
+		err := s.ApplicationCommandPermissionsEdit(appID, guildID, cmdID, &discordgo.ApplicationCommandPermissionsList{
+			Permissions: perms,
+		})
+		if err != nil {
+			ulog.Warn("failed to set permissions for command %s: %v", cmd.Name, err)
+		} else {
+			ulog.Debug("set permissions for command %s (%s)", cmd.Name, cmdID)
+		}
 	}
 
 	return nil
@@ -215,6 +260,7 @@ func interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			return
 		}
 	}
+
 	if cmd.DisabledChannel != nil {
 		if cmd.DisabledChannel[i.ChannelID] {
 			_ = respondEphemeral(s, i, "This channel is excluded from this command")
@@ -222,12 +268,10 @@ func interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		}
 	}
 
-	isAdmin := false
-	if i.Member.Permissions&discordgo.PermissionAdministrator != 0 {
-		isAdmin = true
-	}
+	isAdmin := i.Member.Permissions&discordgo.PermissionAdministrator != 0
+	isAllowedUser := users.GetUserByID(member.ID) != nil
 
-	if !(cmd.AllowEveryone || cmd.AllowAdmin && isAdmin || cmd.AllowDev && os.Getenv("DEV_ID") == member.ID || cmd.AllowStaff && isAdmin || users.GetUserByID(member.ID) != nil) {
+	if !(cmd.AllowEveryone || isAllowedUser || (cmd.AllowAdmin && isAdmin) || (cmd.AllowStaff && isAdmin)) {
 		_ = respondEphemeral(s, i, "You do not have permission for this command")
 		return
 	}

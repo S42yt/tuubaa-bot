@@ -3,18 +3,20 @@ package core
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	ulog "github.com/S42yt/tuubaa-bot/utils/logger"
+	users "github.com/S42yt/tuubaa-bot/utils/users"
 	"github.com/bwmarrin/discordgo"
 )
 
 type ModalHandler struct {
-	CustomID    string
-	Handler     func(s *discordgo.Session, i *discordgo.InteractionCreate) error
-	AllowAdmin  bool
-	AllowDev    bool
-	AllowStaff  bool
+	CustomID      string
+	Handler       func(s *discordgo.Session, i *discordgo.InteractionCreate) error
+	AllowAdmin    bool
+	AllowDev      bool
+	AllowStaff    bool
 	AllowEveryone bool
 }
 
@@ -71,8 +73,9 @@ func modalInteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreat
 	}
 
 	isAdmin := i.Member.Permissions&discordgo.PermissionAdministrator != 0
+	isAllowedUser := users.GetUserByID(i.Member.User.ID) != nil
 
-	if !(m.AllowEveryone || m.AllowAdmin && isAdmin || m.AllowStaff && isAdmin) {
+	if !(m.AllowEveryone || (m.AllowAdmin && (isAdmin || isAllowedUser)) || (m.AllowDev && os.Getenv("DEV_ID") == i.Member.User.ID) || (m.AllowStaff && isAdmin)) {
 		_ = respondEphemeral(s, i, "You do not have permission to submit this modal")
 		return
 	}

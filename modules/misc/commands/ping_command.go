@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	v2 "github.com/S42yt/tuubaa-bot/utils/embed"
 	"github.com/S42yt/tuubaa-bot/core"
+	v2 "github.com/S42yt/tuubaa-bot/utils/embed"
 	"github.com/bwmarrin/discordgo"
 )
 

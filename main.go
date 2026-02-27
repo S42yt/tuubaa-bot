@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	
+
 	debugLevel := false
 	if os.Getenv("LOG_DEBUG") == "true" {
 		debugLevel = true
@@ -34,7 +34,6 @@ func main() {
 	if token == "" {
 		token = os.Getenv("DISCORD_TOKEN")
 	}
-
 
 	if token == "" {
 		logger.Error("Discord bot token not found. Set `DISCORD_TOKEN` or `TOKEN` environment variable, or create a `.env` file with TOKEN=your_token")

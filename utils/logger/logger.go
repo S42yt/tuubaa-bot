@@ -10,7 +10,7 @@ import (
 
 var (
 	debugEnabled = func() bool {
-		// support multiple env vars for flexibility
+		// support multiple env vars for flexibility (amk it doesnt even work)
 		if v := strings.ToLower(os.Getenv("LOG_DEBUG")); v == "1" || v == "true" {
 			return true
 		}

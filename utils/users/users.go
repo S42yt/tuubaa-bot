@@ -1,14 +1,15 @@
 package users
 
 type DiscordUser struct {
-	UserID      string
-	UserName 	string
+	UserID   string
+	UserName string
 }
 
 var Users = []DiscordUser{
 	{UserID: "624623721587408896", UserName: "tuubaa"},
 	{UserID: "787306646417571860", UserName: "s42."},
 	{UserID: "286765460140326913", UserName: "tsundosika1"},
+	//{UserID: "1295026346438824050", UserName: "gemocht"},
 }
 
 func GetUserByID(userID string) *DiscordUser {
@@ -29,9 +30,9 @@ func GetUserByUserName(userName string) *DiscordUser {
 	return nil
 }
 
-func AddUser(userID, userName	 string) {
+func AddUser(userID, userName string) {
 	Users = append(Users, DiscordUser{
-		UserID:      userID,
-		UserName:    userName,
+		UserID:   userID,
+		UserName: userName,
 	})
 }
